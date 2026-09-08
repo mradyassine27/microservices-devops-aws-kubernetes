@@ -14,6 +14,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+
 resource "aws_instance" "k3s_node" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type

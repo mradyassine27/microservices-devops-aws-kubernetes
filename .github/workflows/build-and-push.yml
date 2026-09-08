@@ -1,0 +1,86 @@
+name: Build, Scan and Push to ECR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:   # permet de le déclencher manuellement depuis GitHub
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+  gitleaks:
+    name: Scan des secrets (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-scan-push:
+    name: Build, Trivy, Push
+    needs: gitleaks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: frontend
+            context: src/frontend
+          - service: cartservice
+            context: src/cartservice/src   # Dockerfile dans un sous-dossier src/ (projet .NET)
+          - service: checkoutservice
+            context: src/checkoutservice
+          - service: currencyservice
+            context: src/currencyservice
+          - service: emailservice
+            context: src/emailservice
+          - service: paymentservice
+            context: src/paymentservice
+          - service: productcatalogservice
+            context: src/productcatalogservice
+          - service: shippingservice
+            context: src/shippingservice
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer les identifiants AWS (OIDC, sans clé stockée)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Connexion à ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build de l'image
+        run: |
+          docker build -t ${{ matrix.service }}:${{ github.sha }} ${{ matrix.context }}
+
+      - name: Scan Trivy (vulnérabilités)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ matrix.service }}:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      - name: Tag et push vers ECR
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          IMAGE_URI="${ECR_REGISTRY}/microservices-demo/${{ matrix.service }}:${{ github.sha }}"
+          docker tag ${{ matrix.service }}:${{ github.sha }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+          echo "Image poussée : $IMAGE_URI"
