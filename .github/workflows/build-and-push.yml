@@ -43,8 +43,6 @@ jobs:
             context: src/checkoutservice
           - service: currencyservice
             context: src/currencyservice
-          - service: emailservice
-            context: src/emailservice
           - service: paymentservice
             context: src/paymentservice
           - service: productcatalogservice
