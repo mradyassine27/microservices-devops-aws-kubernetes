@@ -17,8 +17,8 @@
 # Declare variables to be passed into your templates.
 
 images:
-  repository: <TON_ID_COMPTE>.dkr.ecr.eu-north-1.amazonaws.com/microservices-demo
-  tag: "<TAG>"
+  repository: 884404665372.dkr.ecr.eu-north-1.amazonaws.com/microservices-demo
+  tag: "a14f2d8bb236accb4bf51e247ef1a5a843ec4b33"
 
 serviceAccounts:
   # Specifies whether service accounts should be created.
