@@ -5,11 +5,11 @@ on:
     branches: [main]
     paths:
       - 'src/**'
-  workflow_dispatch:   # permet de le déclencher manuellement depuis GitHub
+  workflow_dispatch:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -33,12 +33,13 @@ jobs:
     needs: gitleaks
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - service: frontend
             context: src/frontend
           - service: cartservice
-            context: src/cartservice/src   # Dockerfile dans un sous-dossier src/ (projet .NET)
+            context: src/cartservice/src
           - service: checkoutservice
             context: src/checkoutservice
           - service: currencyservice
@@ -82,3 +83,25 @@ jobs:
           docker tag ${{ matrix.service }}:${{ github.sha }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
           echo "Image poussée : $IMAGE_URI"
+
+  update-gitops:
+    name: Mise à jour du repo GitOps (déclenche ArgoCD)
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mettre à jour gitops/values.yaml avec le nouveau tag
+        run: |
+          sed -i "s|repository: .*|repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/microservices-demo|" gitops/values.yaml
+          sed -i "s|tag: .*|tag: \"${{ github.sha }}\"|" gitops/values.yaml
+          cat gitops/values.yaml | grep -A 2 "^images:"
+
+      - name: Commit et push le changement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add gitops/values.yaml
+          git diff --staged --quiet && echo "Aucun changement" && exit 0
+          git commit -m "GitOps: mise à jour des images vers ${{ github.sha }}"
+          git push
