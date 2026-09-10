@@ -18,7 +18,7 @@
 
 images:
   repository: 884404665372.dkr.ecr.eu-north-1.amazonaws.com/microservices-demo
-  tag: "ee1fbf042f10437b69b09a221431d8b8591ab9b1"
+  tag: "f5153eeffb8a51a2b91655cc711260d3f5d44f5d"
 
 serviceAccounts:
   # Specifies whether service accounts should be created.
