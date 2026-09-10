@@ -54,34 +54,40 @@ def get_error_logs_for_pod(pod_name, tail=50):
     return error_lines
 
 
-def summarize_with_claude(raw_text):
-    """Envoie le texte brut à l'API Claude pour un résumé court et clair."""
+def summarize_with_groq(raw_text):
+    """Envoie les logs Kubernetes à Groq pour générer un résumé."""
+
     response = requests.post(
-        "https://api.anthropic.com/v1/messages",
+        "https://api.groq.com/openai/v1/chat/completions",
         headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json",
         },
         json={
-            "model": "claude-sonnet-4-6",
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (
+                        "Voici des logs d'erreur et événements Kubernetes bruts "
+                        "d'un cluster hébergeant des microservices. "
+                        "Résume en français, en 3-5 lignes maximum : "
+                        "quel service est concerné, quelle est probablement la cause, "
+                        "et le niveau de gravité (faible/moyen/critique).\n\n"
+                        f"{raw_text}"
+                    ),
+                }
+            ],
             "max_tokens": 300,
-            "messages": [{
-                "role": "user",
-                "content": (
-                    "Voici des logs d'erreur et événements Kubernetes bruts d'un cluster "
-                    "hébergeant des microservices. Résume en français, en 3-5 lignes maximum : "
-                    "quel service est concerné, quelle est probablement la cause, "
-                    "et le niveau de gravité (faible/moyen/critique).\n\n"
-                    f"{raw_text}"
-                ),
-            }],
         },
         timeout=30,
     )
+
     response.raise_for_status()
+
     data = response.json()
-    return "".join(block["text"] for block in data["content"] if block["type"] == "text")
+
+    return data["choices"][0]["message"]["content"]
 
 
 def send_telegram_message(text):
@@ -112,8 +118,8 @@ def main():
     if error_logs:
         raw_report += "Logs d'erreur détectés :\n" + "\n\n".join(error_logs)
 
-    print("Anomalies détectées, envoi à Claude pour résumé...")
-    summary = summarize_with_claude(raw_report)
+    print("Anomalies détectées, envoi à Groq pour résumé...")
+    summary = summarize_with_groq(raw_report)
 
     message = f"⚠️ *Alerte cluster microservices-demo*\n\n{summary}"
     send_telegram_message(message)
