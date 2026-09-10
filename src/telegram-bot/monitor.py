@@ -15,7 +15,7 @@ import requests
 # ─── Configuration, lue depuis les variables d'environnement (Secret Kubernetes) ───
 TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-ANTHROPIC_API_KEY = os.environ["GROQ_API_KEY"]
+GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 NAMESPACE = os.environ.get("WATCH_NAMESPACE", "default")
 
 ERROR_PATTERNS = re.compile(r"(ERROR|Exception|panic|Fatal|Traceback)", re.IGNORECASE)
