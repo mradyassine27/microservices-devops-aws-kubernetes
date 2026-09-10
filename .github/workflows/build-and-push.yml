@@ -52,7 +52,7 @@ jobs:
           - service: shippingservice
             context: src/shippingservice
           - service: telegrambot
-            context: telegram-bot
+            context: src/telegram-bot
     steps:
       - uses: actions/checkout@v4
 
