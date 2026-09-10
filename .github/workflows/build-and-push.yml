@@ -53,6 +53,8 @@ jobs:
             context: src/shippingservice
           - service: telegrambot
             context: telegram-bot
+          - service: telegrambot
+            context: telegram-bot
     steps:
       - uses: actions/checkout@v4
 

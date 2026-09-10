@@ -49,5 +49,6 @@ variable "microservices" {
     "currencyservice",
     "shippingservice",
     "paymentservice",
+    "telegrambot",
   ]
 }
