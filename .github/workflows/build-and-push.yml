@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'telegram-bot/**'
   workflow_dispatch:
 
 permissions:
@@ -50,6 +51,8 @@ jobs:
             context: src/productcatalogservice
           - service: shippingservice
             context: src/shippingservice
+          - service: telegrambot
+            context: telegram-bot
     steps:
       - uses: actions/checkout@v4
 
