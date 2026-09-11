@@ -99,7 +99,9 @@ jobs:
           sed -i "s|repository: .*|repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/microservices-demo|" gitops/values.yaml
           sed -i "s|tag: .*|tag: \"${{ github.sha }}\"|" gitops/values.yaml
           cat gitops/values.yaml | grep -A 2 "^images:"
-
+      - name: Mettre à jour le tag du bot Telegram
+        run: |
+          sed -i "s|image: .*telegrambot:.*|image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/microservices-demo/telegrambot:${{ github.sha }}|" gitops/telegram-bot/cronjob.yaml
       - name: Commit et push le changement
         run: |
           git config user.name "github-actions[bot]"

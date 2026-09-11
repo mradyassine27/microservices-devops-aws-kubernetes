@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: telegram-bot-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: telegram-bot-reader
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: telegram-bot-reader-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: telegram-bot-sa
+    namespace: default
+roleRef:
+  kind: Role
+  name: telegram-bot-reader
+  apiGroup: rbac.authorization.k8s.io
