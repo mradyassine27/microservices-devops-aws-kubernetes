@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: microservices-demo-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring   # requis pour que kube-prometheus-stack détecte cette règle
+spec:
+  groups:
+    - name: microservices-demo.rules
+      rules:
+        - alert: PodMemoryHigh
+          expr: |
+            sum(container_memory_working_set_bytes{namespace="default", container!=""}) by (pod)
+            /
+            sum(kube_pod_container_resource_limits{namespace="default", resource="memory"}) by (pod)
+            > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Le pod {{ $labels.pod }} approche sa limite mémoire"
+            description: "{{ $labels.pod }} utilise plus de 90% de sa limite mémoire depuis 5 minutes."
+
+        - alert: PodRestartingFrequently
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="default"}[15m]) > 3
+          labels:
+            severity: warning
+          annotations:
+            summary: "Le pod {{ $labels.pod }} redémarre fréquemment"
+            description: "{{ $labels.pod }} a redémarré plus de 3 fois au cours des 15 dernières minutes."
+
+        - alert: NodeUnderPressure
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Le nœud EC2 approche de la saturation mémoire"
+            description: "Le nœud utilise plus de 85% de sa RAM totale depuis 5 minutes. Risque élevé sur ce cluster single-node."
