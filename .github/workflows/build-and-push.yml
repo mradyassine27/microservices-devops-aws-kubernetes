@@ -39,12 +39,18 @@ jobs:
         include:
           - service: frontend
             context: src/frontend
+          - service: adservice
+            context: src/adservice
           - service: cartservice
             context: src/cartservice/src
+          - service: emailservice
+            context: src/emailservice
           - service: checkoutservice
             context: src/checkoutservice
           - service: currencyservice
             context: src/currencyservice
+          - service: recommendationservice
+            context: src/recommendationservice
           - service: paymentservice
             context: src/paymentservice
           - service: productcatalogservice

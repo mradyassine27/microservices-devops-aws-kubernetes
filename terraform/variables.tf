@@ -43,12 +43,15 @@ variable "microservices" {
   type        = list(string)
   default = [
     "frontend",
+    "adservice",
     "cartservice",
-    "productcatalogservice",
     "checkoutservice",
     "currencyservice",
-    "shippingservice",
+    "emailservice",
     "paymentservice",
-    "telegrambot",
+    "productcatalogservice",
+    "recommendationservice",
+    "shippingservice",
+    "telegrambot"
   ]
 }

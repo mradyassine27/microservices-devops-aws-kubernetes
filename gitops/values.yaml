@@ -59,7 +59,7 @@ securityContext:
   enable: true
 
 adService:
-  create: false
+  create: true
   name: adservice
   resources:
     requests:
@@ -103,7 +103,7 @@ currencyService:
       memory: 256Mi
 
 emailService:
-  create: false
+  create: true
   name: emailservice
   resources:
     requests:
@@ -174,7 +174,7 @@ productCatalogService:
       memory: 128Mi
 
 recommendationService:
-  create: false
+  create: true
   name: recommendationservice
   resources:
     requests:
