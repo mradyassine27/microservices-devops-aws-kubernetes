@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # ─── Configuration - à adapter si besoin ───
-ACCOUNT_ID="884404665372"
-REGION="eu-north-1"
+ACCOUNT_ID="AWS_ACCOUNT_ID"
+REGION="AWS_REGION"
 SHA=$(git rev-parse --short HEAD)
 
 # Liste des microservices à builder (dossier src/<nom> dans le repo Google)

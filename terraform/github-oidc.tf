@@ -37,7 +37,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:mradyassine27@298242309/microservices-devops-aws-kubernetes@1360209106:*"]
+      values   = [var.github_repository]
     }
   }
 }

@@ -38,6 +38,11 @@ variable "public_subnet_cidr" {
   default     = "10.0.1.0/24"
 }
 
+variable "github_repository" {
+  description = "GitHub repository authorized to use AWS OIDC"
+  type        = string
+}
+
 variable "microservices" {
   description = "Liste des microservices pour lesquels créer un repo ECR"
   type        = list(string)
