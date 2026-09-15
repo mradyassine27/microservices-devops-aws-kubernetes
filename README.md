@@ -1,169 +1,388 @@
-<!-- <p align="center">
-<img src="/src/frontend/static/icons/Hipster_HeroLogoMaroon.svg" width="300" alt="Online Boutique" />
-</p> -->
-![Continuous Integration](https://github.com/GoogleCloudPlatform/microservices-demo/workflows/Continuous%20Integration%20-%20Main/Release/badge.svg)
+# Online Boutique — Déploiement AWS Self-Managed avec GitOps
 
-**Online Boutique** is a cloud-first microservices demo application.  The application is a
-web-based e-commerce app where users can browse items, add them to the cart, and purchase them.
+## Vue d'ensemble
 
-Google uses this application to demonstrate how developers can modernize enterprise applications using Google Cloud products, including: [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine), [Cloud Service Mesh (CSM)](https://cloud.google.com/service-mesh), [gRPC](https://grpc.io/), [Cloud Operations](https://cloud.google.com/products/operations), [Spanner](https://cloud.google.com/spanner), [Memorystore](https://cloud.google.com/memorystore), [AlloyDB](https://cloud.google.com/alloydb), and [Gemini](https://ai.google.dev/). This application works on any Kubernetes cluster.
+Ce projet présente le déploiement de **Online Boutique**, une application e-commerce composée de microservices, sur une infrastructure AWS construite et administrée manuellement.
 
-If you’re using this demo, please **★Star** this repository to show your interest!
+L'objectif est de mettre en place une chaîne DevOps complète : **Infrastructure as Code, CI/CD, sécurité, registre d'images, GitOps, Kubernetes, monitoring et alerting intelligent**.
 
-**Note to Googlers:** Please fill out the form at [go/microservices-demo](http://go/microservices-demo).
+![Architecture Pipeline](docs/images/pipeline_cicd_gitops_11services.png)
 
-## Architecture
+> Basé sur le projet open source [Google Online Boutique](https://github.com/GoogleCloudPlatform/microservices-demo).
 
-**Online Boutique** is composed of 11 microservices written in different
-languages that talk to each other over gRPC.
+---
 
-[![Architecture of
-microservices](/docs/img/architecture-diagram.png)](/docs/img/architecture-diagram.png)
+## Pourquoi ce projet ?
 
-Find **Protocol Buffers Descriptions** at the [`./protos` directory](/protos).
+L'objectif de ce projet est d'aller au-delà d'un simple déploiement sur une plateforme cloud managée.
 
-| Service                                              | Language      | Description                                                                                                                       |
-| ---------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| [frontend](/src/frontend)                           | Go            | Exposes an HTTP server to serve the website. Does not require signup/login and generates session IDs for all users automatically. |
-| [cartservice](/src/cartservice)                     | C#            | Stores the items in the user's shopping cart in Redis and retrieves it.                                                           |
-| [productcatalogservice](/src/productcatalogservice) | Go            | Provides the list of products from a JSON file and ability to search products and get individual products.                        |
-| [currencyservice](/src/currencyservice)             | Node.js       | Converts one money amount to another currency. Uses real values fetched from European Central Bank. It's the highest QPS service. |
-| [paymentservice](/src/paymentservice)               | Node.js       | Charges the given credit card info (mock) with the given amount and returns a transaction ID.                                     |
-| [shippingservice](/src/shippingservice)             | Go            | Gives shipping cost estimates based on the shopping cart. Ships items to the given address (mock)                                 |
-| [emailservice](/src/emailservice)                   | Python        | Sends users an order confirmation email (mock).                                                                                   |
-| [checkoutservice](/src/checkoutservice)             | Go            | Retrieves user cart, prepares order and orchestrates the payment, shipping and the email notification.                            |
-| [recommendationservice](/src/recommendationservice) | Python        | Recommends other products based on what's given in the cart.                                                                      |
-| [adservice](/src/adservice)                         | Java          | Provides text ads based on given context words.                                                                                   |
-| [loadgenerator](/src/loadgenerator)                 | Python/Locust | Continuously sends requests imitating realistic user shopping flows to the frontend.                                              |
+Au lieu d'utiliser directement des services managés tels que **EKS**, l'infrastructure Kubernetes est installée et configurée sur une instance AWS EC2 avec **k3s**.
 
-## Screenshots
+Cette approche permet de mieux comprendre chaque composant de l'architecture :
 
-| Home Page                                                                                                         | Checkout Screen                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [![Screenshot of store homepage](/docs/img/online-boutique-frontend-1.png)](/docs/img/online-boutique-frontend-1.png) | [![Screenshot of checkout screen](/docs/img/online-boutique-frontend-2.png)](/docs/img/online-boutique-frontend-2.png) |
+* Infrastructure AWS avec Terraform
+* Configuration réseau et Security Groups
+* Kubernetes et orchestration des conteneurs
+* Registre d'images Docker avec Amazon ECR
+* Authentification sécurisée entre GitHub Actions et AWS (OIDC)
+* CI/CD et automatisation
+* GitOps avec Argo CD
+* Monitoring avec Prometheus et Grafana
+* Alerting intelligent avec un bot IA (Groq) et Telegram
 
-## Quickstart (GKE)
+L'objectif principal est de construire une architecture **DevOps complète et reproductible**, tout en comprenant le fonctionnement des différentes briques.
 
-1. Ensure you have the following requirements:
-   - [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects#creating_a_project).
-   - Shell environment with `gcloud`, `git`, and `kubectl`.
+---
 
-2. Clone the latest major version.
+# Microservices déployés
 
-   ```sh
-   git clone --depth 1 --branch v0 https://github.com/GoogleCloudPlatform/microservices-demo.git
-   cd microservices-demo/
-   ```
+Le projet original Online Boutique compte 11 microservices. Dans ce déploiement :
 
-   The `--depth 1` argument skips downloading git history.
+| Service | Rôle |
+|---|---|
+| frontend | Interface web, orchestration des appels |
+| cartservice | Panier d'achat (Redis) |
+| productcatalogservice | Catalogue produits |
+| checkoutservice | Orchestration de la commande |
+| currencyservice | Conversion de devises |
+| shippingservice | Calcul des frais de livraison |
+| paymentservice | Simulation du paiement |
+| emailservice | Confirmation de commande |
+| adservice | Bandeaux publicitaires |
+| recommendationservice | Suggestions de produits |
 
-3. Set the Google Cloud project and region and ensure the Google Kubernetes Engine API is enabled.
+**`loadgenerator`** reste désactivé : il ne fait que générer du trafic de test artificiel, sans utilité en usage réel.
 
-   ```sh
-   export PROJECT_ID=<PROJECT_ID>
-   export REGION=us-central1
-   gcloud services enable container.googleapis.com \
-     --project=${PROJECT_ID}
-   ```
+Au total : **10 microservices + le bot de surveillance = 11 images** construites, scannées et déployées via le pipeline CI/CD.
 
-   Substitute `<PROJECT_ID>` with the ID of your Google Cloud project.
+---
 
-4. Create a GKE cluster and get the credentials for it.
+# Architecture
 
-   ```sh
-   gcloud container clusters create-auto online-boutique \
-     --project=${PROJECT_ID} --region=${REGION}
-   ```
+![Pipeline CI/CD GitOps](docs/images/pipeline-cicd-gitops_11services.png)
 
-   Creating the cluster may take a few minutes.
+### Communication interne entre les microservices
 
-5. Deploy Online Boutique to the cluster.
+![Communication entre microservices](docs/images/communication_interne_microservices.png)
 
-   ```sh
-   kubectl apply -f ./release/kubernetes-manifests.yaml
-   ```
+Tous les appels entre microservices se font en interne, via gRPC et le DNS Kubernetes (ex: `cartservice.default.svc.cluster.local`) — aucun trafic inter-services ne transite par Internet. Seul le frontend est exposé publiquement, via un Ingress Traefik.
 
-6. Wait for the pods to be ready.
+### Chaîne d'alerting (fonctionnelle)
 
-   ```sh
-   kubectl get pods
-   ```
+![Chaîne d'alerting](docs/images/chaine_alerting_reelle.png)
 
-   After a few minutes, you should see the Pods in a `Running` state:
+Un `CronJob` Kubernetes interroge toutes les 10 minutes l'API Kubernetes (événements anormaux, logs filtrés sur des motifs d'erreur), envoie le contexte à **Groq** pour un résumé en français avec niveau de gravité, puis notifie sur **Telegram**. Ce mécanisme a été testé et validé en conditions réelles.
 
-   ```
-   NAME                                     READY   STATUS    RESTARTS   AGE
-   adservice-76bdd69666-ckc5j               1/1     Running   0          2m58s
-   cartservice-66d497c6b7-dp5jr             1/1     Running   0          2m59s
-   checkoutservice-666c784bd6-4jd22         1/1     Running   0          3m1s
-   currencyservice-5d5d496984-4jmd7         1/1     Running   0          2m59s
-   emailservice-667457d9d6-75jcq            1/1     Running   0          3m2s
-   frontend-6b8d69b9fb-wjqdg                1/1     Running   0          3m1s
-   loadgenerator-665b5cd444-gwqdq           1/1     Running   0          3m
-   paymentservice-68596d6dd6-bf6bv          1/1     Running   0          3m
-   productcatalogservice-557d474574-888kr   1/1     Running   0          3m
-   recommendationservice-69c56b74d4-7z8r5   1/1     Running   0          3m1s
-   redis-cart-5f59546cdd-5jnqf              1/1     Running   0          2m58s
-   shippingservice-6ccc89f8fd-v686r         1/1     Running   0          2m58s
-   ```
+---
 
-7. Access the web frontend in a browser using the frontend's external IP.
+# Choix d'architecture
 
-   ```sh
-   kubectl get service frontend-external | awk '{print $4}'
-   ```
+## Pourquoi k3s au lieu d'EKS ?
 
-   Visit `http://EXTERNAL_IP` in a web browser to access your instance of Online Boutique.
+Amazon EKS est une solution Kubernetes managée qui simplifie la gestion du control plane, mais facture ce control plane séparément des instances de calcul.
 
-8. Congrats! You've deployed the default Online Boutique. To deploy a different variation of Online Boutique (e.g., with Google Cloud Operations tracing, Istio, etc.), see [Deploy Online Boutique variations with Kustomize](#deploy-online-boutique-variations-with-kustomize).
+Dans ce projet, **k3s** a été choisi afin de :
 
-9. Once you are done with it, delete the GKE cluster.
+* Comprendre l'installation et l'administration d'un cluster Kubernetes de bout en bout
+* Réduire les coûts (une seule instance EC2, pas de frais de control plane managé)
+* Contrôler directement chaque paramètre du cluster
+* Construire une infrastructure Kubernetes depuis zéro, à des fins d'apprentissage
 
-   ```sh
-   gcloud container clusters delete online-boutique \
-     --project=${PROJECT_ID} --region=${REGION}
-   ```
+## Pourquoi GitOps avec Argo CD ?
 
-   Deleting the cluster may take a few minutes.
+Avec GitOps, Git devient la **source de vérité** de l'infrastructure applicative.
 
-## Additional deployment options
+![Flux GitOps](docs/images/flux_gitops_argocd.png)
 
-- **Terraform**: [See these instructions](/terraform) to learn how to deploy Online Boutique using [Terraform](https://www.terraform.io/intro).
-- **Istio / Cloud Service Mesh**: [See these instructions](/kustomize/components/service-mesh-istio/README.md) to deploy Online Boutique alongside an Istio-backed service mesh.
-- **Non-GKE clusters (Minikube, Kind, etc)**: See the [Development guide](/docs/development-guide.md) to learn how you can deploy Online Boutique on non-GKE clusters.
-- **AI assistant using Gemini**: [See these instructions](/kustomize/components/shopping-assistant/README.md) to deploy a Gemini-powered AI assistant that suggests products to purchase based on an image.
-- **And more**: The [`/kustomize` directory](/kustomize) contains instructions for customizing the deployment of Online Boutique with other variations.
+Avantages :
 
-## Documentation
+* Déploiements reproductibles et traçables
+* Historique complet des changements (chaque déploiement = un commit)
+* Synchronisation automatique, sans intervention manuelle
+* Rollback basé sur Git (revenir à un commit = revenir à un état de déploiement)
 
-- [Development](/docs/development-guide.md) to learn how to run and develop this app locally.
+## Pourquoi AWS OIDC ?
 
-## Demos featuring Online Boutique
+GitHub Actions s'authentifie auprès d'AWS grâce à **OpenID Connect (OIDC)**, évitant le stockage de clés AWS permanentes dans les secrets GitHub.
 
-- [Security hardening of the OnlineBoutique sample apps with the Docker Hardened Images (DHI)](https://medium.com/google-cloud/security-hardening-of-the-onlineboutique-sample-apps-with-docker-hardened-images-dhi-ca1fad348343)
-- [alpine, distroless or scratch?](https://medium.com/google-cloud/alpine-distroless-or-scratch-caac35250e0b)
-- [Platform Engineering in action: Deploy the Online Boutique sample apps with Score and Humanitec](https://medium.com/p/d99101001e69)
-- [The new Kubernetes Gateway API with Istio and Anthos Service Mesh (ASM)](https://medium.com/p/9d64c7009cd)
-- [Use Azure Redis Cache with the Online Boutique sample on AKS](https://medium.com/p/981bd98b53f8)
-- [Sail Sharp, 8 tips to optimize and secure your .NET containers for Kubernetes](https://medium.com/p/c68ba253844a)
-- [Deploy multi-region application with Anthos and Google cloud Spanner](https://medium.com/google-cloud/a2ea3493ed0)
-- [Use Google Cloud Memorystore (Redis) with the Online Boutique sample on GKE](https://medium.com/p/82f7879a900d)
-- [Use Helm to simplify the deployment of Online Boutique, with a Service Mesh, GitOps, and more!](https://medium.com/p/246119e46d53)
-- [How to reduce microservices complexity with Apigee and Anthos Service Mesh](https://cloud.google.com/blog/products/application-modernization/api-management-and-service-mesh-go-together)
-- [gRPC health probes with Kubernetes 1.24+](https://medium.com/p/b5bd26253a4c)
-- [Use Google Cloud Spanner with the Online Boutique sample](https://medium.com/p/f7248e077339)
-- [Seamlessly encrypt traffic from any apps in your Mesh to Memorystore (redis)](https://medium.com/google-cloud/64b71969318d)
-- [Strengthen your app's security with Cloud Service Mesh and Anthos Config Management](https://cloud.google.com/service-mesh/docs/strengthen-app-security)
-- [From edge to mesh: Exposing service mesh applications through GKE Ingress](https://cloud.google.com/architecture/exposing-service-mesh-apps-through-gke-ingress)
-- [Take the first step toward SRE with Cloud Operations Sandbox](https://cloud.google.com/blog/products/operations/on-the-road-to-sre-with-cloud-operations-sandbox)
-- [Deploying the Online Boutique sample application on Cloud Service Mesh](https://cloud.google.com/service-mesh/docs/onlineboutique-install-kpt)
-- [Anthos Service Mesh Workshop: Lab Guide](https://codelabs.developers.google.com/codelabs/anthos-service-mesh-workshop)
-- [KubeCon EU 2019 - Reinventing Networking: A Deep Dive into Istio's Multicluster Gateways - Steve Dake, Independent](https://youtu.be/-t2BfT59zJA?t=982)
-- Google Cloud Next'18 SF
-  - [Day 1 Keynote](https://youtu.be/vJ9OaAqfxo4?t=2416) showing GKE On-Prem
-  - [Day 3 Keynote](https://youtu.be/JQPOPV_VH5w?t=815) showing Stackdriver
-    APM (Tracing, Code Search, Profiler, Google Cloud Build)
-  - [Introduction to Service Management with Istio](https://www.youtube.com/watch?v=wCJrdKdD6UM&feature=youtu.be&t=586)
-- [Google Cloud Next'18 London – Keynote](https://youtu.be/nIq2pkNcfEI?t=3071)
-  showing Stackdriver Incident Response Management
-- [Microservices demo showcasing Go Micro](https://github.com/go-micro/demo)
+![Authentification OIDC](docs/images/authentification_oidc.png)
+
+---
+
+# Stack technique
+
+| Technologie | Utilisation |
+|---|---|
+| AWS EC2 | Hébergement de l'infrastructure |
+| AWS ECR | Stockage des images Docker |
+| AWS IAM | Gestion des permissions |
+| AWS OIDC | Authentification GitHub → AWS |
+| Terraform | Infrastructure as Code |
+| Docker | Conteneurisation |
+| Kubernetes / k3s | Orchestration des conteneurs |
+| Helm | Gestion des déploiements Kubernetes |
+| GitHub Actions | Pipeline CI |
+| Argo CD | GitOps / Déploiement continu |
+| Prometheus | Monitoring et collecte des métriques |
+| Grafana | Visualisation des métriques |
+| Alertmanager (partiel) | Gestion des alertes basées sur seuils |
+| Trivy | Analyse de vulnérabilités des images |
+| Gitleaks | Détection de secrets dans le code |
+| Telegram | Canal de notification |
+| Groq | Résumé IA des erreurs détectées |
+
+---
+
+# Fonctionnalités
+
+## Infrastructure as Code
+
+L'infrastructure AWS est définie avec Terraform : instance EC2, VPC, Security Group, rôles IAM, fournisseur OIDC, et les 11 repositories ECR. L'ensemble est reproductible via `terraform apply`.
+
+Le script de démarrage de l'instance (`user_data.sh`) installe **automatiquement**, sans intervention manuelle :
+
+* k3s, avec le credential provider ECR intégré dès le premier démarrage
+* Helm
+* Argo CD
+* Prometheus + Grafana (kube-prometheus-stack)
+
+## Pipeline CI
+
+![Pipeline CI détaillé](docs/images/pipeline_ci_detaille.png)
+
+```text
+Developer Push (src/**)
+      │
+      ▼
+GitHub Actions
+      │
+      ├── Gitleaks (scan des secrets)
+      │
+      ├── Pour chacun des 11 services (matrice, en parallèle) :
+      │     ├── Docker Build
+      │     ├── Trivy (scan de vulnérabilités)
+      │     └── Push vers Amazon ECR
+      │
+      └── Mise à jour automatique de gitops/values.yaml
+            (nouveau tag = SHA du commit) + commit + push
+```
+
+## GitOps avec Argo CD
+
+**Séparation stricte des responsabilités** : GitHub Actions ne se connecte jamais au cluster Kubernetes et ne déploie jamais rien directement. Son rôle s'arrête à la mise à jour du fichier `gitops/values.yaml` (nouveau tag d'image) et au push de ce changement vers Git.
+
+C'est **Argo CD**, qui tourne en permanence à l'intérieur du cluster, qui détecte ce changement et applique lui-même la synchronisation — aucun accès entrant depuis l'extérieur du cluster n'est nécessaire, ce qui réduit la surface d'attaque par rapport à un pipeline qui se connecterait directement à Kubernetes.
+
+## Authentification ECR sans secret à renouveler
+
+Plutôt qu'un `imagePullSecret` classique (qui expire toutes les 12h), le nœud k3s utilise un **credential provider** qui s'appuie directement sur le rôle IAM de l'instance EC2 pour obtenir un token ECR à chaque pull d'image, sans jamais expirer ni nécessiter de renouvellement manuel.
+
+## Monitoring
+
+Prometheus (via kube-prometheus-stack) collecte les métriques infrastructure : CPU/RAM par pod, état des services, santé du nœud. Grafana visualise ces données via des dashboards.
+
+> Les microservices Online Boutique n'exposent pas nativement de métriques applicatives Prometheus (orientés OpenTelemetry/GCP à l'origine) — le monitoring couvre donc le niveau infrastructure, complété par le bot de surveillance pour les erreurs applicatives.
+
+## Alerting intelligent
+
+Un `CronJob` Kubernetes s'exécute toutes les 10 minutes :
+
+1. Interroge l'API Kubernetes (`events` anormaux, `logs` filtrés sur des motifs d'erreur)
+2. Si une anomalie est détectée, envoie le contexte brut à **Groq** (LLM gratuit) pour un résumé en français, avec niveau de gravité
+3. Envoie le résumé formaté sur **Telegram**
+
+Ce mécanisme a été testé et validé en conditions réelles, y compris sur un scénario `ImagePullBackOff` provoqué volontairement.
+
+---
+
+# Démo
+
+## Application
+
+Accessible directement, sans tunnel SSH, via Ingress (nip.io).
+
+**Capture 1 — Page d'accueil**
+
+![Online Boutique Application](docs/images/application.png)
+
+**Capture 2 — Panier**
+
+![Panier](docs/images/cart.png)
+
+---
+
+# Captures du pipeline
+
+**Capture 3 — Pipeline GitHub Actions**
+
+![GitHub Actions](docs/images/github-actions.png)
+
+**Capture 4 — Argo CD (Healthy / Synced)**
+
+![Argo CD](docs/images/argocd.png)
+
+**Capture 5 — Dashboard Grafana**
+
+![Grafana](docs/images/grafana.png)
+
+**Capture 6 — Alerte reçue sur Telegram**
+
+![Telegram Alert](docs/images/telegram-alert.png)
+
+---
+
+# Déploiement
+
+## Prérequis
+
+* Compte AWS
+* Terraform (≥ 1.5)
+* AWS CLI
+* Une key pair EC2 existante
+* Un bucket S3 pour le state Terraform (voir ci-dessous)
+
+## 1. Cloner le repository
+
+```bash
+git clone git@github.com:mradyassine27/microservices-devops-aws-kubernetes.git
+cd microservices-devops-aws-kubernetes
+```
+
+## 2. Créer le bucket S3 pour le state Terraform
+
+```bash
+aws s3api create-bucket \
+  --bucket <ton-nom-de-bucket-unique> \
+  --region eu-north-1 \
+  --create-bucket-configuration LocationConstraint=eu-north-1
+```
+
+Mets à jour le nom du bucket dans `terraform/versions.tf`.
+
+## 3. Configurer les variables
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Édite `terraform.tfvars` avec ton IP publique (`curl ifconfig.me`) et le nom de ta key pair SSH.
+
+## 4. Créer l'infrastructure AWS
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+k3s, Argo CD, Prometheus/Grafana et le credential provider ECR s'installent automatiquement (compter 5 à 10 minutes après la création de l'instance).
+
+## 5. Configurer GitHub Actions
+
+Dans les Settings du repo GitHub → Secrets and variables → Actions, ajouter :
+
+| Secret | Valeur |
+|---|---|
+| `AWS_ROLE_ARN` | `terraform output github_actions_role_arn` |
+| `AWS_ACCOUNT_ID` | Ton ID de compte AWS |
+| `AWS_REGION` | `eu-north-1` |
+
+## 6. Créer le Secret Kubernetes pour le bot Telegram
+
+Sur l'instance EC2, en SSH :
+
+```bash
+sudo kubectl create secret generic telegram-bot-secrets \
+  --from-literal=TELEGRAM_BOT_TOKEN="<ton-token>" \
+  --from-literal=TELEGRAM_CHAT_ID="<ton-chat-id>" \
+  --from-literal=GROQ_API_KEY="<ta-clé-groq>"
+```
+
+## 7. Exposer le frontend et Grafana (Ingress, sans tunnel)
+
+Sur l'instance EC2 :
+
+```bash
+cat > frontend-ingress.yaml << 'EOF'
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: default
+spec:
+  rules:
+    - host: "<ip-avec-tirets>.nip.io"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+EOF
+sudo kubectl apply -f frontend-ingress.yaml
+```
+
+## 8. Déclencher le pipeline
+
+```bash
+git push
+```
+
+GitHub Actions build, scanne, pousse les images, met à jour `gitops/`. Argo CD synchronise automatiquement.
+
+## 9. Accéder à l'application
+
+```bash
+terraform output instance_public_ip
+```
+
+Application accessible sur `http://<ip-avec-tirets>.nip.io`, sans tunnel.
+
+---
+
+# Ce que j'ai appris
+
+## AWS OIDC et GitHub Actions
+
+Le principal défi a été la configuration de l'authentification entre GitHub Actions et AWS sans clé permanente. Un changement récent de GitHub (format immuable du `sub` OIDC basé sur des IDs numériques plutôt que sur les noms) a nécessité d'adapter la trust policy IAM pour utiliser le format `repo:OWNER@OWNER_ID/REPO@REPO_ID:*`.
+
+## Authentification ECR sans expiration
+
+Un `imagePullSecret` classique expire toutes les 12h. La solution retenue a été de configurer un **credential provider** au niveau kubelet, s'appuyant directement sur le rôle IAM de l'instance — token toujours frais, aucune maintenance requise. Cette configuration a été intégrée directement dans le script de démarrage de l'instance pour rester reproductible à chaque recréation.
+
+## Structure réelle des charts Helm
+
+Une hypothèse initiale incorrecte (un champ `image` par microservice dans `values.yaml`) a conduit à un déploiement silencieusement figé sur l'ancienne version d'image. La vérification du code source des templates Helm a révélé que le chart utilise un unique champ global `images.repository`, combiné automatiquement avec le nom de chaque service.
+
+## Débogage réseau et Kubernetes
+
+La mise en place du monitoring a nécessité de déboguer plusieurs couches : kubeconfig introuvable par Helm sous `sudo`, credential provider non rechargé après une modification du service k3s, et une intégration Alertmanager → Telegram qui accepte les alertes en interne mais ne parvient pas encore à les délivrer, malgré une connectivité réseau confirmée à chaque niveau (token valide, DNS résolu depuis le pod, HTTPS fonctionnel). Cette dernière piste reste ouverte.
+
+---
+
+# Limitations connues
+
+* L'intégration **Alertmanager → Telegram** est configurée (règles de seuils actives, alertes bien détectées et acceptées par Alertmanager) mais la livraison finale vers Telegram ne fonctionne pas encore. Le **bot de surveillance custom** (Kubernetes API → Groq → Telegram) reste le canal d'alerting principal et pleinement fonctionnel.
+* `loadgenerator` reste désactivé (génère du trafic de test artificiel, sans utilité en usage réel).
+* Les microservices Online Boutique n'exposent pas de métriques Prometheus applicatives nativement — le monitoring Prometheus couvre le niveau infrastructure uniquement.
+
+---
+
+# Améliorations futures
+
+* [ ] Résoudre la livraison Alertmanager → Telegram
+* [ ] HTTPS avec certificats TLS automatiques (cert-manager + Let's Encrypt)
+* [ ] Ingress pour Argo CD (actuellement accessible via tunnel SSH uniquement)
+* [ ] Dashboards Grafana personnalisés pour les microservices
+* [ ] Progressive Delivery avec Argo Rollouts (Canary Deployment)
+* [ ] Rollback automatique basé sur des métriques Prometheus
+
+---
+
+# Licence
+
+Ce projet est basé sur **Google Online Boutique**, distribué sous licence **Apache License 2.0**. Les modifications et l'infrastructure DevOps ajoutées dans ce repository respectent la licence du projet original.
