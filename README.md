@@ -6,7 +6,7 @@ Ce projet présente le déploiement de **Online Boutique**, une application e-co
 
 L'objectif est de mettre en place une chaîne DevOps complète : **Infrastructure as Code, CI/CD, sécurité, registre d'images, GitOps, Kubernetes, monitoring et alerting intelligent**.
 
-![Architecture Pipeline](docs/images/pipeline_cicd_gitops_11services.png)
+![Architecture Pipeline](docs/images/architecture_pipeline_principal.png)
 
 > Basé sur le projet open source [Google Online Boutique](https://github.com/GoogleCloudPlatform/microservices-demo).
 
@@ -57,13 +57,10 @@ Au total : **10 microservices + le bot de surveillance = 11 images** construites
 
 ---
 
-# Architecture
-
-![Pipeline CI/CD GitOps](docs/images/pipeline-cicd-gitops_11services.png)
 
 ### Communication interne entre les microservices
 
-![Communication entre microservices](docs/images/communication_interne_microservices.png)
+![Communication entre microservices](docs/images/communication_interne_10services.png)
 
 Tous les appels entre microservices se font en interne, via gRPC et le DNS Kubernetes (ex: `cartservice.default.svc.cluster.local`) — aucun trafic inter-services ne transite par Internet. Seul le frontend est exposé publiquement, via un Ingress Traefik.
 
@@ -148,7 +145,7 @@ Le script de démarrage de l'instance (`user_data.sh`) installe **automatiquemen
 
 ## Pipeline CI
 
-![Pipeline CI détaillé](docs/images/pipeline_ci_detaille.png)
+![Pipeline CI détaillé](docs/images/pipeline_ci_detaille_11.png)
 
 ```text
 Developer Push (src/**)
